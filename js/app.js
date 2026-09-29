@@ -1,5 +1,6 @@
 import {stages,classify} from './engine.js';
 import {loadConfig,readResults,saveVotes,isClosed,showError,escapeHTML as esc} from './storage.js';
+import {isCentral,syncCentral,pendingVote} from './central.js';
 let config,index=0,number='',blank=false,votes=[],finished=false,busy=false,sound=true,audio;
 const screen=document.querySelector('#screen');
 const keypad=document.querySelector('#keypad');
@@ -17,7 +18,8 @@ function renderGuide(query=''){
   }).join('');
 }
 function render(){
-  if(isClosed(config)){
+  const pending=pendingVote(config);
+  if(isClosed(config)&&!pending&&!finished){
     document.querySelectorAll('.controls button').forEach(b=>b.disabled=true);screen.classList.add('finish');
     screen.innerHTML='<h2 style="font-size:26px;letter-spacing:0">Votação encerrada</h2><p>Esta urna não está mais recebendo votos.<br>Os resultados estão no painel da escola.</p>';
     document.querySelector('#machine-status').textContent='Urna encerrada';document.querySelector('#vote-progress').textContent='VOTAÇÃO ENCERRADA';return;
@@ -26,7 +28,7 @@ function render(){
   document.querySelector('#steps').innerHTML=stages.map((s,i)=>`<li class="${finished||i<index?'done':i===index?'active':''}" ${!finished&&i===index?'aria-current="step"':''}><span class="step-number">${finished||i<index?'✓':i+1}</span><span class="step-label">${esc(label(s))}${s.detail?`<small>${esc(s.detail)}</small>`:''}</span></li>`).join('');
   document.querySelectorAll('.controls button').forEach(b=>b.disabled=finished||busy);
   document.querySelector('#vote-progress').textContent=finished?'VOTAÇÃO CONCLUÍDA':`VOTO ${String(index+1).padStart(2,'0')} DE 06`;
-  document.querySelector('#machine-status').textContent=finished?'Votação salva neste navegador':busy?'Salvando votação':'Urna pronta para votar';
+  document.querySelector('#machine-status').textContent=finished?(isCentral(config)?'Votação salva no banco central':'Votação salva neste navegador'):busy?'Salvando votação':pending?'Envio pendente — confirme novamente':'Urna pronta para votar';
   screen.classList.toggle('finish',finished);
   if(finished){screen.innerHTML='<span class="screen-kicker">VOTAÇÃO CONCLUÍDA</span><h2>FIM</h2><p>Suas seis escolhas foram registradas.<br>Obrigado por participar!</p><button class="primary" id="next-student">Próximo aluno →</button>';return;}
   const choice=classify(config,index,number,blank,votes);
@@ -39,10 +41,13 @@ function render(){
   if(choice.tipo==='repetido')content='<p class="vote-kind">SENADOR JÁ ESCOLHIDO</p><p class="screen-description">Escolha outro número para a segunda vaga. Aperte CORRIGE.</p>';
   screen.innerHTML=`<p class="screen-kicker">SEU VOTO PARA${stage.detail?' · '+esc(stage.detail):''}</p><h2>${esc(label(stage))}</h2>${blank?'':`<div class="digits" aria-label="Número digitado: ${number||'nenhum'}">${Array.from({length:stage.digits},(_,i)=>`<span class="digit ${i===number.length?'cursor':''}">${number[i]||''}</span>`).join('')}</div>`}${content}<div class="screen-instructions">Aperte a tecla:<br><strong>CONFIRMA</strong> para confirmar este voto<br><strong>CORRIGE</strong> para reiniciar este voto</div>`;
   document.querySelector('[data-action="confirm"]').disabled=busy||['incompleto','repetido'].includes(choice.tipo);
+  if(pending)document.querySelectorAll('.controls button:not([data-action="confirm"])').forEach(b=>b.disabled=true);
 }
 async function act(action,digit){
   if(!config||finished||busy)return;
-  if(isClosed(config)){render();return;}
+  const pending=pendingVote(config);
+  if(isClosed(config)&&!pending){render();return;}
+  if(pending&&action!=='confirm')return;
   if(action==='number'){if(blank||number.length>=stages[index].digits)return;number+=digit;beep();render();return;}
   if(action==='correct'){number='';blank=false;render();return;}
   if(action==='blank'){number='';blank=true;render();return;}
@@ -74,11 +79,17 @@ async function init(){
   document.querySelectorAll('.controls button').forEach(b=>b.disabled=true);
   try{
     config=await loadConfig();readResults(config);
+    const pending=pendingVote(config);
+    if(pending){index=5;votes=pending.votes.slice(0,5);const last=pending.votes[5];blank=last.tipo==='branco';number=last.tipo==='nulo'?'00':last.numero||'';showError(new Error('Há um envio pendente. Aperte CONFIRMA para verificar o registro antes de atender o próximo aluno.'));}
     document.querySelector('#config-notice').textContent=config.demonstracao?`MODO DE DEMONSTRAÇÃO · São Paulo · ${config.ano} — Os candidatos e partidos deste cadastro são fictícios. A base oficial ainda precisa ser importada.`:`SIMULAÇÃO ESCOLAR · ${config.uf} · ${config.ano} — Candidatos reais. Esta votação não tem valor eleitoral oficial.`;
     document.querySelector('#candidate-guide').className='candidate-list';
     const search=document.createElement('input');search.type='search';search.placeholder='Buscar por nome, número ou partido';search.setAttribute('aria-label','Buscar candidatos');search.className='candidate-search';search.addEventListener('input',()=>renderGuide(search.value));document.querySelector('#candidate-guide').before(search);
     renderGuide();
     render();
+    if(isCentral(config)){
+      document.querySelector('.help-grid>div:last-child p').innerHTML='<strong>Confirme para continuar</strong><br>O FIM confirma que o banco central recebeu o voto.';
+      setInterval(async()=>{if(busy||document.hidden)return;try{await syncCentral(config);if(isClosed(config))render();}catch(error){showError(error);}},5000);
+    }
   }catch(error){config=null;screen.innerHTML='<h2>Urna indisponível</h2><p>Verifique o cadastro e o acesso ao armazenamento antes de iniciar.</p>';showError(error);}
 }
 init();

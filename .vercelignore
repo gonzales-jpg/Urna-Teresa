@@ -3,7 +3,12 @@ tmp
 tests
 test-results
 playwright-report
-scripts
+scripts/importar_tse.py
+supabase
+server/*.test.js
+dist
+.env
+.env.*
 .git
 README.md
 playwright.config.js

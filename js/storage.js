@@ -1,19 +1,26 @@
 import {emptyResults, assertResults, tally, stages} from './engine.js';
+import {isCentral,centralState,syncCentral,closeCentral,saveCentral} from './central.js';
 export async function loadConfig(){
   const response=await fetch('data/candidatos.json',{cache:'no-store'});
   if(!response.ok) throw new Error('Não foi possível carregar os candidatos.');
   const config=await response.json();
+  const connection=await fetch('data/conexao.json',{cache:'no-store'});
+  if(!connection.ok)throw new Error('Não foi possível carregar o modo de conexão.');
+  config.modo=(await connection.json()).modo;
+  if(!['local','central'].includes(config.modo))throw new Error('Modo de conexão inválido.');
   if(!config.id || !Array.isArray(config.partidos) || typeof config.demonstracao!=='boolean') throw new Error('Configuração da eleição inválida.');
   if(!config.demonstracao && (!/^[A-Z]{2}$/.test(config.uf||'') || !config.fonte)) throw new Error('Informe a UF e a fonte dos candidatos reais no cadastro.');
   for(const s of stages){
     const list=config.candidatos?.[s.group];
     if(!Array.isArray(list)||!list.length||list.some(c=>!new RegExp(`^\\d{${s.digits}}$`).test(c.numero)||!c.nome||!c.partido)||new Set(list.map(c=>c.numero)).size!==list.length) throw new Error(`Cadastro inválido: ${s.label}.`);
   }
+  if(isCentral(config))await syncCentral(config);
   return config;
 }
 const keyFor=config=>`urna-escola:${config.id}`;
-export function isClosed(config){return localStorage.getItem(`${keyFor(config)}:encerrada`)!==null;}
+export function isClosed(config){return isCentral(config)?centralState(config).encerrada:localStorage.getItem(`${keyFor(config)}:encerrada`)!==null;}
 export async function closeVoting(config){
+  if(isCentral(config))return closeCentral(config);
   await navigator.locks.request(keyFor(config),()=>{readResults(config);localStorage.setItem(`${keyFor(config)}:encerrada`,new Date().toISOString());});
 }
 function stationId(config){
@@ -22,6 +29,7 @@ function stationId(config){
 }
 export function readImports(config){return JSON.parse(localStorage.getItem(`${keyFor(config)}:importacoes`)||'[]');}
 export function combinedResults(config){
+  if(isCentral(config))return readResults(config);
   const result=structuredClone(readResults(config));
   for(const imported of readImports(config)){
     assertResults(imported,config.id);result.totalVotacoes+=imported.totalVotacoes;
@@ -29,6 +37,7 @@ export function combinedResults(config){
   }return assertResults(result,config.id);
 }
 export async function importResults(config,data){
+  if(isCentral(config))throw new Error('A votação central soma os PCs automaticamente. Arquivos locais não são importados neste modo.');
   assertResults(data,config.id);
   if(data.encerrada!==true||typeof data.urnaId!=='string'||!data.urnaId)throw new Error('Importe o JSON de uma urna encerrada, exportado pela versão atual.');
   await navigator.locks.request(keyFor(config),()=>{
@@ -40,10 +49,12 @@ export async function importResults(config,data){
   });
 }
 export function readResults(config){
+  if(isCentral(config)){const state=centralState(config);return state.resultados||{totalVotacoes:state.totalVotacoes};}
   const raw=localStorage.getItem(keyFor(config));
   return raw===null?emptyResults(config.id):assertResults(JSON.parse(raw),config.id);
 }
 export async function saveVotes(config,votes){
+  if(isCentral(config))return saveCentral(config,votes);
   if(!navigator.locks) throw new Error('Abra a urna em HTTPS ou localhost em um navegador atualizado para salvar com segurança entre abas.');
   await navigator.locks.request(keyFor(config),()=>{
     if(isClosed(config))throw new Error('A votação desta urna foi encerrada. Este voto não foi registrado.');
@@ -51,8 +62,9 @@ export async function saveVotes(config,votes){
     localStorage.setItem(keyFor(config),JSON.stringify(next));
   });
 }
-export function exportResults(config){
-  const data={...readResults(config),urnaId:stationId(config),encerrada:isClosed(config),exportadoEm:new Date().toISOString(),modo:config.demonstracao?'demonstracao':'simulacao',ano:config.ano,uf:config.uf};
+export async function exportResults(config){
+  if(isCentral(config)){await syncCentral(config,true);if(!isClosed(config))throw new Error('O resultado estará disponível após o encerramento.');}
+  const data={...readResults(config),...(isCentral(config)?{origem:'central'}:{urnaId:stationId(config)}),encerrada:isClosed(config),exportadoEm:new Date().toISOString(),modo:config.demonstracao?'demonstracao':'simulacao',ano:config.ano,uf:config.uf};
   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
   const link=document.createElement('a');link.href=url;link.download='votos.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }

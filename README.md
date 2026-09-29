@@ -1,6 +1,8 @@
 # Urna Escola — São Paulo, 2026
 
-Simulação escolar em HTML, CSS e JavaScript puro, sem React e sem build de produção. Interface responsiva inspirada na urna, com teclado físico ou virtual, som opcional, correção, branco, nulo e legenda para deputados.
+Simulação escolar em HTML, CSS e JavaScript puro, sem React. Interface responsiva inspirada na urna, com teclado físico ou virtual, som opcional, correção, branco, nulo e legenda para deputados.
+
+**Integração central disponível:** para compartilhar votos automaticamente entre PCs, siga [CONFIGURAR-VOTACAO-ONLINE.md](CONFIGURAR-VOTACAO-ONLINE.md). O site permanece no modo local até configurar Supabase e ativar `VOTACAO_CENTRAL=true` na Vercel. As seções de armazenamento local abaixo descrevem o modo original.
 
 ## Executar
 
@@ -8,7 +10,7 @@ Na pasta do projeto, execute `python -m http.server 3000` e abra http://localhos
 
 ## Publicar na Vercel
 
-Importe o repositório como projeto estático, com preset **Other**, sem comando de build, e diretório de saída `.` (raiz). Não precisa de React nem de variáveis de ambiente. O arquivo `vercel.json` configura cabeçalhos básicos. O projeto está preparado para publicação; nenhum deploy foi realizado automaticamente.
+Importe o repositório com preset **Other**. O arquivo `vercel.json` já configura `node scripts/build.mjs` como build e `dist` como saída. Esse script apenas copia os arquivos públicos e define o modo de conexão; não existe React ou framework. As funções em `api/` são executadas pela Vercel. Não sobrescreva essas configurações com os valores da versão estática antiga. Sem `VOTACAO_CENTRAL=true`, o site mantém o funcionamento local original; com essa variável, exige a API e o banco configurados, sem fallback local.
 
 ## Arquivos
 

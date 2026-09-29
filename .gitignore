@@ -4,3 +4,7 @@ test-results/
 playwright-report/
 .vercel/
 __pycache__/
+.env
+.env.*
+!.env.example
+dist/

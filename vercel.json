@@ -1,7 +1,8 @@
 {
   "framework": null,
-  "buildCommand": "",
+  "buildCommand": "node scripts/build.mjs",
   "installCommand": "",
-  "outputDirectory": ".",
+  "outputDirectory": "dist",
+  "functions": {"api/urna.js":{"includeFiles":"data/candidatos.json"}},
   "headers": [{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"},{"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"},{"key":"X-Frame-Options","value":"DENY"}]}]
 }
