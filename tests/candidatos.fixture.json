@@ -1,0 +1,16 @@
+{
+  "id": "demonstracao-2026-v1",
+  "ano": 2026,
+  "uf": null,
+  "escola": "Urna Escola",
+  "demonstracao": true,
+  "fonte": null,
+  "partidos": [{"numero":"91","sigla":"PES","nome":"Partido Escola (fictício)"},{"numero":"92","sigla":"PAP","nome":"Partido Aprender (fictício)"}],
+  "candidatos": {
+    "deputado_federal": [{"numero":"9101","nome":"Ana Educação","partido":"PES","foto":null},{"numero":"9201","nome":"Pedro Ciência","partido":"PAP","foto":null}],
+    "deputado_estadual": [{"numero":"91001","nome":"Clara Cultura","partido":"PES","foto":null},{"numero":"92001","nome":"Lucas Esporte","partido":"PAP","foto":null}],
+    "senador": [{"numero":"911","nome":"Maria Cidadania","partido":"PES","suplentes":["Alice Leitura","Bruno Arte"],"foto":null},{"numero":"922","nome":"João Futuro","partido":"PAP","suplentes":["Célia Música","Davi Pesquisa"],"foto":null}],
+    "governador": [{"numero":"91","nome":"Helena Saber","partido":"PES","vice":"Rafael Aprender","foto":null},{"numero":"92","nome":"Miguel Escola","partido":"PAP","vice":"Sofia Livro","foto":null}],
+    "presidente": [{"numero":"91","nome":"Beatriz Democracia","partido":"PES","vice":"André Respeito","foto":null},{"numero":"92","nome":"Gabriel Diálogo","partido":"PAP","vice":"Laura Participação","foto":null}]
+  }
+}

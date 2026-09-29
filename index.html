@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174c42">
+  <title>Urna Escola · Simulação eleitoral</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="header"><a class="brand" href="index.html"><span class="brand-icon" aria-hidden="true">▤</span> urna<span>escola</span></a><span class="header-tag">EDUCAÇÃO PARA A CIDADANIA</span><a class="text-link" href="apuracao.html">Painel da escola ↗</a></header>
+  <main class="main">
+    <div class="intro"><div><span class="eyebrow">SIMULAÇÃO ELEITORAL</span><h1>Seu voto, sua voz.</h1><p>Aprenda a votar. Participe. Faça parte da democracia.</p></div><span class="pill"><span class="dot"></span> Ambiente de aprendizagem</span></div>
+    <div class="notice" id="config-notice">Carregando a configuração da eleição…</div>
+    <div class="workspace">
+      <aside class="journey"><span class="eyebrow">SUA JORNADA NA URNA</span><h2>Seis escolhas.<br>Um exercício de cidadania.</h2><ol id="steps"></ol><div class="secret"><span aria-hidden="true">◈</span><p><strong>O voto é pessoal.</strong><br>Não pedimos nome ou matrícula.</p></div></aside>
+      <section class="machine" aria-label="Urna eletrônica educativa">
+        <div class="machine-top"><span>URNA ESCOLAR</span><span>SIMULAÇÃO • 1º TURNO</span></div>
+        <div class="machine-body">
+          <div class="screen-frame"><section class="screen" id="screen" aria-live="polite" aria-atomic="true"><p>Preparando a urna…</p></section><div class="screen-bottom"><span class="dot"></span> <span id="machine-status">Aguardando configuração</span></div></div>
+          <div class="controls"><div class="control-brand"><span class="brand-icon" aria-hidden="true">▤</span><strong>URNA<br><small>EDUCATIVA</small></strong></div><div class="keypad" id="keypad" aria-label="Teclado numérico"></div><div class="action-keys"><button class="action white" data-action="blank">BRANCO</button><button class="action orange" data-action="correct">CORRIGE</button><button class="action green" data-action="confirm">CONFIRMA</button></div><p class="keyboard-hint">Use também o teclado do computador.<br><kbd>Enter</kbd> confirma · <kbd>Backspace</kbd> corrige</p></div>
+        </div>
+        <div class="machine-footer"><span id="vote-progress">VOTO 01 DE 06</span><button id="sound-toggle" class="subtle" aria-pressed="true">Som ligado ♫</button></div>
+      </section>
+    </div>
+    <div class="help-grid"><div><span class="help-number">01</span><p><strong>Digite o número</strong><br>Confira o nome e os dados do candidato.</p></div><div><span class="help-number">02</span><p><strong>Confira sua escolha</strong><br>Errou? Aperte CORRIGE e tente de novo.</p></div><div><span class="help-number">03</span><p><strong>Confirme para continuar</strong><br>Seu voto só é salvo após as seis escolhas.</p></div></div>
+    <details class="guide"><summary>Consultar candidatos e entender branco e nulo</summary><p>BRANCO deixa o cargo sem candidato. Para anular, digite um número sem candidato ou legenda cadastrados e confirme a indicação VOTO NULO. Nos cargos de deputado, os dois primeiros dígitos também podem identificar uma legenda.</p><div id="candidate-guide"></div></details>
+    <p id="error" class="error" role="alert" hidden></p>
+  </main><footer class="footer"><span>urnaescola · Aprender democracia na prática.</span><span>Projeto educativo independente · Sem vínculo com a Justiça Eleitoral</span></footer>
+</body>
+</html>

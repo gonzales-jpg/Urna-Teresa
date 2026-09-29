@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {classify,emptyResults,tally,assertResults} from '../js/engine.js';
+const config=JSON.parse(readFileSync(new URL('./candidatos.fixture.json',import.meta.url)));
+test('número incompleto não confirma; desconhecido completo anula',()=>{assert.equal(classify(config,0,'9',false).tipo,'incompleto');assert.equal(classify(config,0,'0000',false).tipo,'nulo');});
+test('branco não preserva número',()=>assert.deepEqual(classify(config,0,'9101',true),{tipo:'branco',numero:null}));
+test('candidato e legenda de deputado',()=>{assert.equal(classify(config,0,'9101',false).tipo,'candidato');assert.equal(classify(config,0,'91',false).tipo,'legenda');assert.equal(classify(config,0,'9199',false).tipo,'legenda');assert.equal(classify(config,0,'910',false).tipo,'incompleto');});
+test('não permite repetir senador, mas permite dois brancos ou nulos',()=>{const previous=[null,null,{tipo:'candidato',numero:'911'}];assert.equal(classify(config,3,'911',false,previous).tipo,'repetido');assert.equal(classify(config,3,'922',false,previous).tipo,'candidato');assert.equal(classify(config,3,'',true,previous).tipo,'branco');assert.equal(classify(config,3,'000',false,previous).tipo,'nulo');});
+test('salva apenas seis votos e acumula sem alterar original',()=>{const empty=emptyResults(config.id);const votes=Array.from({length:6},()=>({tipo:'branco',numero:null}));assert.throws(()=>tally(empty,votes.slice(1)));const once=tally(empty,votes);const twice=tally(once,votes);assert.equal(empty.totalVotacoes,0);assert.equal(twice.totalVotacoes,2);for(const counts of Object.values(twice.contagens))assert.equal(counts.branco,2);});
+test('não sobrescreve base inconsistente',()=>{const data=emptyResults(config.id);data.totalVotacoes=1;assert.throws(()=>assertResults(data,config.id));});

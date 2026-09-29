@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Painel da escola · Urna Escola</title><link rel="stylesheet" href="css/styles.css"><script type="module" src="js/admin.js"></script></head>
+<body>
+<header class="header"><a class="brand" href="index.html"><span class="brand-icon">▤</span> urna<span>escola</span></a><a class="text-link" href="index.html">← Voltar à urna</a></header>
+<main class="main admin">
+<section id="login" class="login-card"><span class="eyebrow">ACESSO DA ESCOLA</span><h1>Painel da escola.</h1><p>Digite a senha para acessar os controles da votação.</p><form id="login-form"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required autofocus><button class="primary" type="submit">Entrar no painel</button><p id="login-error" class="error" role="alert" hidden></p></form></section>
+<section id="panel" hidden>
+<div class="admin-title"><div><span class="eyebrow">PAINEL DA ESCOLA</span><h1>Participação em números.</h1></div><button class="primary" id="logout">Sair do painel</button></div><p id="status" role="status"></p>
+<section class="summary-card"><div><span class="eyebrow">VOTAÇÕES NESTA URNA</span><strong id="total">—</strong><span>6 escolhas por votação</span></div><button class="primary" id="export">↓ Exportar votos.json desta urna</button></section>
+<section id="open-controls" class="result-card"><h2>Encerrar a votação</h2><p>Finalize o atendimento de todos os alunos antes de encerrar. Escolhas ainda não confirmadas na última etapa não serão salvas. O encerramento vale somente para este navegador e não tem opção de reabertura neste painel.</p><button class="primary" id="close">Encerrar votação</button></section>
+<section id="final-controls" class="result-card" hidden><h2>Resultado final</h2><p>Veja os votos por cargo. Para reunir dois PCs, encerre e exporte em cada um; importe o arquivo do outro PC aqui. Cada urna é somada uma única vez.</p><div class="admin-actions"><button class="primary" id="show-results">Ver resultado final</button><label class="primary import-label">Importar JSON de outro PC<input id="import" type="file" accept=".json,application/json"></label></div><p id="combined-info"></p><p>O botão de exportação sempre baixa apenas os votos desta urna, sem os arquivos importados.</p></section>
+<p id="error" class="error" role="alert" hidden></p><p id="feedback" role="status"></p><div id="results" hidden></div>
+<p class="storage-note">A senha é uma barreira local de acesso, sem autenticação de servidor. Os votos e o encerramento ficam neste navegador. Não limpe seus dados antes de exportar. PCs diferentes não sincronizam automaticamente.</p>
+</section></main>
+<dialog id="close-dialog"><h2>Encerrar esta urna?</h2><p>Novos votos serão bloqueados neste navegador. Confira se o último aluno já terminou.</p><div class="admin-actions"><button id="cancel-close">Cancelar</button><button class="primary" id="confirm-close">Confirmar encerramento</button></div></dialog>
+<footer class="footer">urnaescola · Simulação eleitoral educativa</footer></body></html>

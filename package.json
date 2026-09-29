@@ -1,0 +1,12 @@
+{
+  "name": "urna-escolar",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "python -m http.server 3000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
