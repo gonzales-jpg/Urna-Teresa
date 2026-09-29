@@ -56,7 +56,13 @@ Não configure previews para usar o banco real da votação. Para testar uma pub
 4. Confira o painel no outro PC. O total é atualizado a cada cinco segundos.
 5. Teste o segundo PC. O total deve aumentar novamente.
 
-Testes contam como votos. Para uma atividade real, use uma eleição nova ou um banco separado; não misture votos de teste com os dos alunos.
+Testes contam como votos. Antes da atividade real, use **Reiniciar votação** no painel para zerar os testes. A ação exige digitar novamente a senha e confirmar a exclusão.
+
+## Atualização para habilitar Reiniciar votação
+
+Se o banco foi criado com a versão anterior, copie novamente **todo** o conteúdo atualizado de [supabase/setup.sql](https://github.com/gonzales-jpg/Urna-Teresa/blob/main/supabase/setup.sql) para uma nova consulta no SQL Editor e clique em **Run**. É uma atualização única: executar o arquivo não apaga votos nem altera o estado aberto/encerrado atual. Aguarde a publicação do código novo na Vercel e recarregue o painel. O botão é habilitado quando o banco informa o número da rodada.
+
+**Reiniciar votação** apaga as contagens e os comprovantes técnicos de envio da eleição atual, reabre as urnas e inicia uma nova rodada. A senha é validada novamente no servidor, mesmo com o painel já aberto. Envios da rodada antiga são rejeitados e as abas detectam o reinício em até cinco segundos. Um clique repetido ou uma tentativa de reenviar a mesma solicitação de reinício não apaga votos de uma rodada posterior. Exporte o resultado antes se quiser conservá-lo. Essa função não altera o cadastro dos candidatos, a senha ou as configurações do banco.
 
 ## Durante a atividade
 
@@ -71,6 +77,6 @@ Testes contam como votos. Para uma atividade real, use uma eleição nova ou um 
 - **Conexão central não configurada**: confira se todas as variáveis estão em Production, incluindo um `SESSION_SECRET` com no mínimo 32 caracteres, e faça Redeploy.
 - **Banco indisponível ou ainda não configurado**: confira se o projeto Supabase está ativo, se o SQL foi executado, se o Project URL está correto e se a chave é de servidor.
 - **Muitas tentativas**: aguarde 15 minutos antes de tentar a senha novamente. A proteção é compartilhada por endereço de rede.
-- **Urna encerrada**: apagar o armazenamento do navegador não reabre a votação central. Não existe botão de reabertura nesta versão. Para uma nova atividade, prepare outro identificador de eleição e outra linha no banco.
+- **Urna encerrada**: para começar do zero, use **Reiniciar votação** no painel. Isso apaga os votos atuais e pede confirmação e senha. Apagar o armazenamento do navegador não reabre a votação central.
 
 Referências: [chaves de API do Supabase](https://supabase.com/docs/guides/api/api-keys), [variáveis de ambiente da Vercel](https://vercel.com/docs/environment-variables).

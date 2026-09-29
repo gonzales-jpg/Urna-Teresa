@@ -45,6 +45,16 @@ test('SQL real: transação, reenvio sem duplicação, encerramento e permissõe
     // Running setup twice does not reopen the election or clear votes.
     await db.exec(readFileSync(new URL('../supabase/setup.sql',import.meta.url),'utf8'));
     assert.equal((await db.query('select closed,total from public.urna_elections')).rows[0].total,6);
+    await db.exec('set role anon;');await assert.rejects(()=>db.query('select public.urna_reset($1,1)',[election]));await db.exec('reset role;');
+    const reset=(await db.query('select public.urna_reset($1,1) result',[election])).rows[0].result;
+    assert.equal(reset.rodada,2);assert.equal(reset.totalVotacoes,0);assert.equal(reset.encerrada,false);
+    const cleaned=(await db.query('select counts from public.urna_elections')).rows[0].counts;for(const counts of Object.values(cleaned))assert.deepEqual(counts,{});
+    assert.equal((await db.query('select count(*)::int n from public.urna_receipts')).rows[0].n,0);
+    await assert.rejects(()=>submit(id,'hash'),/ROUND_CHANGED/);
+    await assert.rejects(()=>submit(randomUUID(),'old-unsent'),/ROUND_CHANGED/);
+    await db.query('select public.urna_submit($1,$2,$3,$4::jsonb,2)',[election,randomUUID(),'new',JSON.stringify(votes)]);
+    await assert.rejects(()=>db.query('select public.urna_reset($1,1)',[election]),/ROUND_CHANGED/);
+    assert.equal((await db.query('select total from public.urna_elections')).rows[0].total,1);
   }finally{await db.close();}
 });
 test('API exige login para resultados/encerramento, origem correta e configuração',async()=>{
@@ -58,10 +68,14 @@ test('API exige login para resultados/encerramento, origem correta e configuraç
   };
   try{
     assert.equal((await call('results')).code,401);assert.equal((await call('close',{method:'POST'})).code,401);assert.equal(calls,0);
+    assert.equal((await call('reset',{method:'POST',body:{password:'test-only',confirmar:true,rodada:1}})).code,401);assert.equal(calls,0);
     assert.equal((await call('login',{method:'POST',body:{password:'bad'}})).code,401);
     const login=await call('login',{method:'POST',body:{password:'test-only'}});assert.equal(login.code,200);assert.match(login.headers['Set-Cookie'],/HttpOnly; Secure; SameSite=Strict/);
     const token=login.headers['Set-Cookie'].split(';')[0].slice(11);
     assert.equal((await call('results',{token})).code,200);
+    assert.equal((await call('reset',{method:'POST',token,body:{password:'test-only',rodada:1}})).code,400);
+    assert.equal((await call('reset',{method:'POST',token,body:{password:'bad',confirmar:true,rodada:1}})).code,403);
+    assert.equal((await call('reset',{method:'POST',token,body:{password:'test-only',confirmar:true,rodada:1}})).code,200);
     assert.equal((await call('close',{method:'POST',token,origin:'https://evil.example'})).code,403);
     const status=await call('status');assert.equal(status.data.totalVotacoes,undefined);
     assert.equal((await call('vote',{method:'POST',body:{eleicao:'wrong',requestId:randomUUID(),votes}})).code,400);

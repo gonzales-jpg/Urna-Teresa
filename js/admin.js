@@ -1,7 +1,8 @@
 import {stages} from './engine.js';
 import {loadConfig,readResults,exportResults,isClosed,closeVoting,combinedResults,readImports,importResults,showError,escapeHTML as esc} from './storage.js';
-import {isCentral,request,syncCentral} from './central.js';
+import {isCentral,request,syncCentral,centralState,resetCentral} from './central.js';
 let config,authenticated=false,visibleResults=false;
+let resetRound;
 const $=selector=>document.querySelector(selector);
 const passwordHash='28765bc222b061ba0e74499d5696e05ed68785b549fb21bf994dbe57ca758a14';
 function renderResults(data){
@@ -21,6 +22,9 @@ function refresh(){
   $('#total').textContent=readResults(config).totalVotacoes;
   $('#status').textContent=closed?'Votação encerrada neste navegador.':'Votação em andamento neste navegador. Os resultados por candidato serão exibidos após o encerramento.';
   if(isCentral(config)){
+    $('#reset-controls').hidden=false;
+    $('#reset').disabled=!Number.isSafeInteger(centralState(config).rodada);
+    $('#reset-setup').hidden=!$('#reset').disabled;
     $('#status').textContent=closed?'Votação encerrada em todos os PCs.':'Votação central em andamento. Total atualizado automaticamente a cada 5 segundos.';
     $('.summary-card .eyebrow').textContent='VOTAÇÕES EM TODOS OS PCs';
     $('#export').textContent='↓ Exportar resultado central';$('#export').disabled=!closed;
@@ -48,7 +52,7 @@ $('#login-form').addEventListener('submit',async event=>{
   }catch(error){authenticated=false;$('#login-error').textContent=error.message;$('#login-error').hidden=false;$('#password').focus();}
   finally{submit.disabled=false;}
 });
-function logout(){authenticated=false;visibleResults=false;$('#panel').hidden=true;$('#login').hidden=false;$('#results').innerHTML='';$('#results').hidden=true;$('#password').value='';$('#close-dialog').close();$('#password').focus();}
+function logout(){authenticated=false;visibleResults=false;$('#panel').hidden=true;$('#login').hidden=false;$('#results').innerHTML='';$('#results').hidden=true;$('#password').value='';$('#close-dialog').close();$('#reset-dialog').close();$('#reset-password').value='';$('#password').focus();}
 $('#logout').addEventListener('click',async()=>{if(isCentral(config))try{await request('logout',{});}catch(error){showError(error);return;}logout();});
 window.addEventListener('pageshow',event=>{if(event.persisted)logout();});
 function protectedAction(action){return async()=>{if(!authenticated)return;$('#error').hidden=true;try{await action();}catch(error){if(error.status===401)logout();else showError(error);}};}
@@ -57,6 +61,23 @@ $('#close').addEventListener('click',protectedAction(()=>$('#close-dialog').show
 $('#cancel-close').addEventListener('click',()=>$('#close-dialog').close());
 $('#confirm-close').addEventListener('click',protectedAction(async()=>{await closeVoting(config);$('#close-dialog').close();visibleResults=true;refresh();}));
 $('#show-results').addEventListener('click',protectedAction(()=>{visibleResults=true;refresh();$('#results').scrollIntoView({behavior:'smooth',block:'start'});}));
+$('#reset').addEventListener('click',protectedAction(async()=>{
+  await syncCentral(config,true);resetRound=centralState(config).rodada;
+  $('#reset-form').reset();$('#reset-error').hidden=true;$('#reset-dialog').showModal();$('#reset-password').focus();
+}));
+$('#cancel-reset').addEventListener('click',()=>$('#reset-dialog').close());
+$('#reset-dialog').addEventListener('close',()=>{$('#reset-password').value='';});
+$('#reset-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(!authenticated||!$('#reset-confirm').checked)return;
+  const button=$('#confirm-reset');if(button.disabled)return;button.disabled=true;$('#cancel-reset').disabled=true;$('#reset-error').hidden=true;
+  const password=$('#reset-password').value;$('#reset-password').value='';
+  try{
+    await resetCentral(config,password,resetRound);visibleResults=false;$('#results').innerHTML='';$('#feedback').textContent='Votação reiniciada. Todos os votos foram zerados e as urnas estão abertas.';$('#reset-dialog').close();refresh();
+  }catch(error){
+    if(error.status===401)logout();
+    else{$('#reset-error').textContent=error.message;$('#reset-error').hidden=false;$('#reset-password').focus();}
+  }finally{button.disabled=false;$('#cancel-reset').disabled=false;}
+});
 $('#import').addEventListener('change',protectedAction(async()=>{
   const file=$('#import').files[0];$('#import').value='';if(!file)return;
   if(file.size>5*1024*1024)throw new Error('Arquivo muito grande. Selecione o JSON exportado pela urna.');

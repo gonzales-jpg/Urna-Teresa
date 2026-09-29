@@ -1,7 +1,17 @@
 import {stages,classify} from './engine.js';
 import {loadConfig,readResults,saveVotes,isClosed,showError,escapeHTML as esc} from './storage.js';
-import {isCentral,syncCentral,pendingVote} from './central.js';
+import {isCentral,syncCentral,pendingVote,centralState,clearOldPending} from './central.js';
 let config,index=0,number='',blank=false,votes=[],finished=false,busy=false,sound=true,audio;
+let activeRound=1;
+function checkRound(){
+  if(!isCentral(config))return;
+  const round=centralState(config).rodada??1;
+  const discarded=clearOldPending(config);
+  if(round!==activeRound||discarded){
+    activeRound=round;index=0;number='';blank=false;votes=[];finished=false;
+    showError(new Error('A escola reiniciou a votação. As escolhas anteriores foram descartadas. Comece uma nova votação.'));
+  }
+}
 const screen=document.querySelector('#screen');
 const keypad=document.querySelector('#keypad');
 keypad.innerHTML=[1,2,3,4,5,6,7,8,9,0].map(n=>`<button class="number-key" data-number="${n}" aria-label="Número ${n}">${n}</button>`).join('');
@@ -57,7 +67,11 @@ async function act(action,digit){
   if(index<5){votes.push(choice);index++;number='';blank=false;beep();render();return;}
   busy=true;render();
   try{await saveVotes(config,[...votes,choice]);finished=true;votes=[];number='';blank=false;document.querySelector('#error').hidden=true;beep(true);}
-  catch(error){showError(new Error(`Não foi possível salvar. Suas escolhas continuam nesta tela; tente CONFIRMA novamente. ${error.message}`));}
+  catch(error){
+    if(error.code==='ROUND_CHANGED'){
+      try{await syncCentral(config);checkRound();}catch(syncError){showError(syncError);}
+    }else showError(new Error(`Não foi possível salvar. Suas escolhas continuam nesta tela; tente CONFIRMA novamente. ${error.message}`));
+  }
   finally{busy=false;render();}
 }
 document.addEventListener('click',event=>{
@@ -79,6 +93,7 @@ async function init(){
   document.querySelectorAll('.controls button').forEach(b=>b.disabled=true);
   try{
     config=await loadConfig();readResults(config);
+    activeRound=centralState(config).rodada??1;checkRound();
     const pending=pendingVote(config);
     if(pending){index=5;votes=pending.votes.slice(0,5);const last=pending.votes[5];blank=last.tipo==='branco';number=last.tipo==='nulo'?'00':last.numero||'';showError(new Error('Há um envio pendente. Aperte CONFIRMA para verificar o registro antes de atender o próximo aluno.'));}
     document.querySelector('#config-notice').textContent=config.demonstracao?`MODO DE DEMONSTRAÇÃO · São Paulo · ${config.ano} — Os candidatos e partidos deste cadastro são fictícios. A base oficial ainda precisa ser importada.`:`SIMULAÇÃO ESCOLAR · ${config.uf} · ${config.ano} — Candidatos reais. Esta votação não tem valor eleitoral oficial.`;
@@ -88,7 +103,7 @@ async function init(){
     render();
     if(isCentral(config)){
       document.querySelector('.help-grid>div:last-child p').innerHTML='<strong>Confirme para continuar</strong><br>O FIM confirma que o banco central recebeu o voto.';
-      setInterval(async()=>{if(busy||document.hidden)return;try{await syncCentral(config);if(isClosed(config))render();}catch(error){showError(error);}},5000);
+      setInterval(async()=>{if(busy||document.hidden)return;try{const before=activeRound;await syncCentral(config);checkRound();if(isClosed(config)||before!==activeRound)render();}catch(error){showError(error);}},5000);
     }
   }catch(error){config=null;screen.innerHTML='<h2>Urna indisponível</h2><p>Verifique o cadastro e o acesso ao armazenamento antes de iniciar.</p>';showError(error);}
 }
